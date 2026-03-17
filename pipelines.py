@@ -62,3 +62,89 @@ class BookscraperPipeline:
                 adapter['stars'] = 5
 
         return item
+import mysql.connector
+
+class SaveToMysqlPipeline:
+
+    def __init__(self):
+        self.conn = mysql.connector.connect(
+            host='localhost',
+            user='root',
+            password='Oolongtoker1!',
+            database='books'
+        )
+
+        # create cursor, used to execute commands
+        self.cur = self.conn.cursor()
+
+        # create books table if none exists
+        self.cur.execute(
+            """CREATE TABLE IF NOT EXISTS `books` (
+            id int NOT NULL AUTO_INCREMENT,
+            url varchar(255),
+            title text,
+            product_type VARCHAR(255),
+            price_excl_tax DECIMAL,
+            price_incl_tax DECIMAL,
+            tax DECIMAL,
+            price DECIMAL,
+            availability INTEGER,
+            num_reviews INTEGER,
+            stars INTEGER,
+            category VARCHAR(255),
+            description text,
+            PRIMARY KEY (id)
+        )
+        """)
+
+    def process_item(self, item, spider):
+        self.cur.execute(
+            """INSERT INTO `books` (
+            url, 
+            title, 
+            product_type, 
+            price_excl_tax,
+            price_incl_tax,
+            tax,
+            price,
+            availability,
+            num_reviews,
+            stars,
+            category,
+            description
+            ) VALUES (
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s, 
+            %s,
+            %s
+            )""", (
+                item['url'],
+                item['title'],
+                item['product_type'],
+                item['price_excl_tax'],
+                item['price_incl_tax'],
+                item['tax'],
+                item['price'],
+                item['availability'],
+                item['num_reviews'],
+                item['stars'],
+                item['category'],
+                item['description'][0])
+            )
+
+        # execute insert of data into database
+        self.conn.commit()
+        return item
+
+    def close_spider(self, spider):
+        # close cursor & connection to database
+        self.cur.close()
+        self.conn.close()
